@@ -1,62 +1,70 @@
+//Launch Express
 var express = require("express");
-var bodyParser = require("body-parser");
-var sql = require("mssql");
-
 var app = express();
 
 // Body Parser Middleware
+var bodyParser = require("body-parser");
 app.use(bodyParser.json());
 
-//CORS Middleware
-app.use(function (req, res, next) {
-    //Enabling CORS 
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS,POST,PUT");
-    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, contentType,Content-Type, Accept, Authorization");
-    next();
-});
+//CORS
+const cors = require("cors");
+app.use(cors());
 
-//Setting up server
-var server = app.listen(3000, function () {
-    var port = server.address().port;
-    console.log("App now running on port", port);
-});
+//SQL
+const sql = require("./config");
 
-//Initiallising connection string
-var dbConfig = {
-    user: "sa",
-    password: "Welcome@1234",
-    server: "GGKU5SER2",
-    database: "AFT_TestDB"
-};
-
-//Function to connect to database and execute query
-var executeQuery = function (response, query) {
-    sql.connect(dbConfig, function (err) {
+//Querries
+//For Client-Side Pagination
+app.get("/", (req, res, next) => {
+    var request = new sql.Request();
+    var query = "SELECT * FROM GV_TEST_PERSON_TABLE";
+    request.query(query, (err, response) => {
         if (err) {
-            console.log("Error while connecting database :- " + err);
-            res.send(err);
+            console.log("Error while querying database :- " + err);
+            res.status(406).send("Not acceptable");
         } else {
-            console.log("Connected to DataBase");
-            // create Request object
-            var request = new sql.Request();
-            // query to the database
-            request.query(query, function (err, res) {
-                if (err) {
-                    console.log("Error while querying database :- " + err);
-                    response.send(err);
-                } else {
-                    response.send(res);
-                }
-                sql.close();
-            });
+            res.status(200).send(response.recordset);
         }
     });
-}
-
-//GET API
-app.get("/api/user", function (req, res) {
-    var query = "select * from GV_TEST_PERSON_TABLE";
-    //sql.close();
-    executeQuery(res, query);
 });
+
+//For Server-Side Pagination
+app.post("/", (req, res, next) => {
+    var request = new sql.Request();
+    var offset = req.body.pageSize * req.body.pageNumber;
+    var query;
+    if (req.body.columnName) {
+        if (req.body.sortState === 0) {
+            query = `SELECT * FROM GV_TEST_PERSON_TABLE ORDER BY (SELECT NULL) OFFSET ${offset} ROWS FETCH NEXT ${req.body.pageSize} ROWS ONLY`;
+        } else if (req.body.sortState === 1) {
+            query = `SELECT * FROM GV_TEST_PERSON_TABLE ORDER BY ${req.body.columnName} ASC OFFSET ${offset} ROWS FETCH NEXT ${req.body.pageSize} ROWS ONLY`;
+        } else if (req.body.sortState === 2) {
+            query = `SELECT * FROM GV_TEST_PERSON_TABLE ORDER BY ${req.body.columnName} DESC OFFSET ${offset} ROWS FETCH NEXT ${req.body.pageSize} ROWS ONLY`;
+        }
+    } else {
+        query = `SELECT * FROM GV_TEST_PERSON_TABLE ORDER BY (SELECT NULL) OFFSET ${offset} ROWS FETCH NEXT ${req.body.pageSize} ROWS ONLY`;
+    }
+    request.query(query, (err, response) => {
+        console.log(query);
+        if (err) {
+            console.log("Error while querying database :- " + err);
+            res.status(406).send("Not acceptable");
+        } else {
+            res.status(200).send(response.recordset);
+        }
+    });
+});
+
+//Default errors
+app.use((error, req, res, next) => {
+    res.status(error.status || 500);
+    res.json({
+        error: {
+            message: error.message,
+            status: error.status
+        }
+    });
+});
+
+//Export app
+module.exports = app;
