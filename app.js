@@ -46,8 +46,9 @@ var executeQuery = function (response, query) {
                     console.log("Error while querying database :- " + err);
                     response.send(err);
                 } else {
-                    response.send(res.recordset);
+                    response.send(res);
                 }
+                sql.close();
             });
         }
     });
@@ -56,6 +57,6 @@ var executeQuery = function (response, query) {
 //GET API
 app.get("/api/user", function (req, res) {
     var query = "select * from GV_TEST_PERSON_TABLE";
-    sql.close();
+    //sql.close();
     executeQuery(res, query);
 });
