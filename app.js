@@ -50,6 +50,7 @@ app.post("/", (req, res, next) => {
             console.log("Error while querying database :- " + err);
             res.status(406).send("Not acceptable");
         } else {
+            console.log(response.recordset);
             res.status(200).send(response.recordset);
         }
     });
