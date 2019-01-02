@@ -31,70 +31,54 @@ app.get("/", (req, res, next) => {
 //For Server-Side Pagination
 app.post("/", (req, res, next) => {
     var request = new sql.Request();
-    var offset = req.body.pageSize * req.body.pageNumber;
+    var offset = req.body.pageSize * (req.body.pageNumber - 1);
     var query;
-    //If Filter is required
+    var sortState;
+
+
+    switch (req.body.sortState) {
+        case 0:
+            sortState = "(select null)";
+            break;
+        case 1:
+            sortState = `${req.body.columnName} ASC`;
+            break;
+        case 2:
+            sortState = `${req.body.columnName} DESC`;
+            break;
+    }
+
     if (req.body.filterdata || req.body.filterdata === 0) {
-        //No sorting
-        if (req.body.columnName) {
-            if (req.body.sortState === 0) {
-                query = `SELECT * FROM GV_TEST_PERSON_TABLE where ${
-          req.body.filterColumnName
-        } like '%${
-          req.body.filterdata
-        }%' ORDER BY (SELECT NULL) OFFSET ${offset} ROWS FETCH NEXT ${
-          req.body.pageSize
-        } ROWS ONLY`;
-            } else if (req.body.sortState === 1) {
-                query = `SELECT * FROM GV_TEST_PERSON_TABLE where ${
-          req.body.columnName
-        } like '%${req.body.filterdata}%' ORDER BY ${
-          req.body.columnName
-        } ASC OFFSET ${offset} ROWS FETCH NEXT ${req.body.pageSize} ROWS ONLY`;
-            } else if (req.body.sortState === 2) {
-                query = `SELECT * FROM GV_TEST_PERSON_TABLE where ${
-          req.body.columnName
-        } like '%${req.body.filterdata}%' ORDER BY ${
-          req.body.columnName
-        } DESC OFFSET ${offset} ROWS FETCH NEXT ${req.body.pageSize} ROWS ONLY`;
-            }
-        } else {
-            if (req.body.sortState === 0) {
-                query = `SELECT * FROM GV_TEST_PERSON_TABLE where ${
-          req.body.columnName
-        } like '%${
-          req.body.filterdata
-        }%' ORDER BY (SELECT NULL) OFFSET ${offset} ROWS FETCH NEXT ${
-          req.body.pageSize
-        } ROWS ONLY`;
-            } else if (req.body.sortState === 1) {
-                query = `SELECT * FROM GV_TEST_PERSON_TABLE where ${
-          req.body.columnName
-        } like '%${req.body.filterdata}%' ORDER BY ${
-          req.body.columnName
-        } ASC OFFSET ${offset} ROWS FETCH NEXT ${req.body.pageSize} ROWS ONLY`;
-            } else if (req.body.sortState === 2) {
-                query = `SELECT * FROM GV_TEST_PERSON_TABLE where ${
-          req.body.columnName
-        } like '%${req.body.filterdata}%' ORDER BY ${
-          req.body.columnName
-        } DESC OFFSET ${offset} ROWS FETCH NEXT ${req.body.pageSize} ROWS ONLY`;
-            }
-        }
-    } else if (req.body.columnName) {
-        if (req.body.sortState === 0) {
-            query = `SELECT * FROM GV_TEST_PERSON_TABLE ORDER BY (SELECT NULL) OFFSET ${offset} ROWS FETCH NEXT ${
+        //Filter with sorting
+
+        console.log(1, isNaN(req.body.filterdata), req.body.filterdata);
+        if (isNaN(req.body.filterdata)) {
+
+            query = `SELECT * FROM GV_TEST_PERSON_TABLE where ${
+        req.body.filterColumnName
+      } like '%${
+        req.body.filterdata
+      }%' ORDER BY  ${sortState} OFFSET ${offset} ROWS FETCH NEXT ${
         req.body.pageSize
       } ROWS ONLY`;
-        } else if (req.body.sortState === 1) {
-            query = `SELECT * FROM GV_TEST_PERSON_TABLE ORDER BY ${
-        req.body.columnName
-      } ASC OFFSET ${offset} ROWS FETCH NEXT ${req.body.pageSize} ROWS ONLY`;
-        } else if (req.body.sortState === 2) {
-            query = `SELECT * FROM GV_TEST_PERSON_TABLE ORDER BY ${
-        req.body.columnName
-      } DESC OFFSET ${offset} ROWS FETCH NEXT ${req.body.pageSize} ROWS ONLY`;
+        } else {
+            console.log(req.body.numericFilterOption);
+            query = filterWitSorting(
+                req.body.filterColumnName,
+                req.body.numericFilterOption,
+                req.body.filterdata,
+                offset,
+                sortState,
+                req.body.pageSize
+            );
         }
+    }
+    //Sorting
+    else if (req.body.columnName) {
+        query = `SELECT * FROM GV_TEST_PERSON_TABLE ORDER BY 
+     ${sortState} OFFSET ${offset} ROWS FETCH NEXT ${
+      req.body.pageSize
+    } ROWS ONLY`;
     } else {
         query = `SELECT * FROM GV_TEST_PERSON_TABLE ORDER BY (SELECT NULL) OFFSET ${offset} ROWS FETCH NEXT ${
       req.body.pageSize
@@ -122,5 +106,16 @@ app.use((error, req, res, next) => {
     });
 });
 
+function filterWitSorting(
+    filterColumnName,
+    numericFilterOption,
+    filterdata,
+    offset,
+    sortState,
+    pageSize
+) {
+    query = `SELECT * FROM GV_TEST_PERSON_TABLE where ${filterColumnName} ${numericFilterOption} ${filterdata} ORDER BY ${sortState} OFFSET ${offset} ROWS FETCH NEXT ${pageSize} ROWS ONLY`;
+    return query;
+}
 //Export app
 module.exports = app;
