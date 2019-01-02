@@ -33,16 +33,72 @@ app.post("/", (req, res, next) => {
     var request = new sql.Request();
     var offset = req.body.pageSize * req.body.pageNumber;
     var query;
-    if (req.body.columnName) {
+    //If Filter is required
+    if (req.body.filterdata || req.body.filterdata === 0) {
+        //No sorting
+        if (req.body.columnName) {
+            if (req.body.sortState === 0) {
+                query = `SELECT * FROM GV_TEST_PERSON_TABLE where ${
+          req.body.filterColumnName
+        } like '%${
+          req.body.filterdata
+        }%' ORDER BY (SELECT NULL) OFFSET ${offset} ROWS FETCH NEXT ${
+          req.body.pageSize
+        } ROWS ONLY`;
+            } else if (req.body.sortState === 1) {
+                query = `SELECT * FROM GV_TEST_PERSON_TABLE where ${
+          req.body.columnName
+        } like '%${req.body.filterdata}%' ORDER BY ${
+          req.body.columnName
+        } ASC OFFSET ${offset} ROWS FETCH NEXT ${req.body.pageSize} ROWS ONLY`;
+            } else if (req.body.sortState === 2) {
+                query = `SELECT * FROM GV_TEST_PERSON_TABLE where ${
+          req.body.columnName
+        } like '%${req.body.filterdata}%' ORDER BY ${
+          req.body.columnName
+        } DESC OFFSET ${offset} ROWS FETCH NEXT ${req.body.pageSize} ROWS ONLY`;
+            }
+        } else {
+            if (req.body.sortState === 0) {
+                query = `SELECT * FROM GV_TEST_PERSON_TABLE where ${
+          req.body.columnName
+        } like '%${
+          req.body.filterdata
+        }%' ORDER BY (SELECT NULL) OFFSET ${offset} ROWS FETCH NEXT ${
+          req.body.pageSize
+        } ROWS ONLY`;
+            } else if (req.body.sortState === 1) {
+                query = `SELECT * FROM GV_TEST_PERSON_TABLE where ${
+          req.body.columnName
+        } like '%${req.body.filterdata}%' ORDER BY ${
+          req.body.columnName
+        } ASC OFFSET ${offset} ROWS FETCH NEXT ${req.body.pageSize} ROWS ONLY`;
+            } else if (req.body.sortState === 2) {
+                query = `SELECT * FROM GV_TEST_PERSON_TABLE where ${
+          req.body.columnName
+        } like '%${req.body.filterdata}%' ORDER BY ${
+          req.body.columnName
+        } DESC OFFSET ${offset} ROWS FETCH NEXT ${req.body.pageSize} ROWS ONLY`;
+            }
+        }
+    } else if (req.body.columnName) {
         if (req.body.sortState === 0) {
-            query = `SELECT * FROM GV_TEST_PERSON_TABLE ORDER BY (SELECT NULL) OFFSET ${offset} ROWS FETCH NEXT ${req.body.pageSize} ROWS ONLY`;
+            query = `SELECT * FROM GV_TEST_PERSON_TABLE ORDER BY (SELECT NULL) OFFSET ${offset} ROWS FETCH NEXT ${
+        req.body.pageSize
+      } ROWS ONLY`;
         } else if (req.body.sortState === 1) {
-            query = `SELECT * FROM GV_TEST_PERSON_TABLE ORDER BY ${req.body.columnName} ASC OFFSET ${offset} ROWS FETCH NEXT ${req.body.pageSize} ROWS ONLY`;
+            query = `SELECT * FROM GV_TEST_PERSON_TABLE ORDER BY ${
+        req.body.columnName
+      } ASC OFFSET ${offset} ROWS FETCH NEXT ${req.body.pageSize} ROWS ONLY`;
         } else if (req.body.sortState === 2) {
-            query = `SELECT * FROM GV_TEST_PERSON_TABLE ORDER BY ${req.body.columnName} DESC OFFSET ${offset} ROWS FETCH NEXT ${req.body.pageSize} ROWS ONLY`;
+            query = `SELECT * FROM GV_TEST_PERSON_TABLE ORDER BY ${
+        req.body.columnName
+      } DESC OFFSET ${offset} ROWS FETCH NEXT ${req.body.pageSize} ROWS ONLY`;
         }
     } else {
-        query = `SELECT * FROM GV_TEST_PERSON_TABLE ORDER BY (SELECT NULL) OFFSET ${offset} ROWS FETCH NEXT ${req.body.pageSize} ROWS ONLY`;
+        query = `SELECT * FROM GV_TEST_PERSON_TABLE ORDER BY (SELECT NULL) OFFSET ${offset} ROWS FETCH NEXT ${
+      req.body.pageSize
+    } ROWS ONLY`;
     }
     request.query(query, (err, response) => {
         console.log(query);
@@ -50,7 +106,6 @@ app.post("/", (req, res, next) => {
             console.log("Error while querying database :- " + err);
             res.status(406).send("Not acceptable");
         } else {
-            console.log(response.recordset);
             res.status(200).send(response.recordset);
         }
     });
