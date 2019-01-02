@@ -31,6 +31,7 @@ app.get("/", (req, res, next) => {
 //For Server-Side Pagination
 app.post("/", (req, res, next) => {
     var request = new sql.Request();
+    if (req.body.pageNumber == 0) req.body.pageNumber++;
     var offset = req.body.pageSize * (req.body.pageNumber - 1);
     var query;
     var sortState;
@@ -48,16 +49,16 @@ app.post("/", (req, res, next) => {
             break;
     }
 
-    if (req.body.filterdata || req.body.filterdata === 0) {
+    if (req.body.filterData || req.body.filterData === 0) {
         //Filter with sorting
 
-        console.log(1, isNaN(req.body.filterdata), req.body.filterdata);
-        if (isNaN(req.body.filterdata)) {
+        console.log(1, isNaN(req.body.filterData), req.body.filterData);
+        if (isNaN(req.body.filterData)) {
 
             query = `SELECT * FROM GV_TEST_PERSON_TABLE where ${
         req.body.filterColumnName
       } like '%${
-        req.body.filterdata
+        req.body.filterData
       }%' ORDER BY  ${sortState} OFFSET ${offset} ROWS FETCH NEXT ${
         req.body.pageSize
       } ROWS ONLY`;
@@ -66,7 +67,7 @@ app.post("/", (req, res, next) => {
             query = filterWitSorting(
                 req.body.filterColumnName,
                 req.body.numericFilterOption,
-                req.body.filterdata,
+                req.body.filterData,
                 offset,
                 sortState,
                 req.body.pageSize
